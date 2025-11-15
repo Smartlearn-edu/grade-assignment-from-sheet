@@ -1,0 +1,325 @@
+{
+  "name": "grade assignment from sheet rubric",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -912,
+        -640
+      ],
+      "id": "3ae3fc76-b9d0-4a2e-9f66-d5ef150a75a4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1_7uEMoKHqBgDyXzRIrVu5O0Oq1GikQVhQ0s39rLMWnk",
+          "mode": "list",
+          "cachedResultName": "C++ assignments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_7uEMoKHqBgDyXzRIrVu5O0Oq1GikQVhQ0s39rLMWnk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_7uEMoKHqBgDyXzRIrVu5O0Oq1GikQVhQ0s39rLMWnk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -752,
+        -640
+      ],
+      "id": "93bf78f8-6188-4a51-a5d7-720abad2f9f4",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ll71p2dsiT3JLP8R",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -576,
+        -608
+      ],
+      "id": "aa70960e-ad5b-43ef-a67b-08423ceff65f",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=instructions:{{ $json.instructions }}\nsubmissionText :{{ $json.submissionText }}\nmaxGrade:{{ $json.maxGrade }}",
+        "options": {
+          "systemMessage": "You are a teacher grading student assignments using a rubric.\n\nAssignment Question: {{ $json.instructions }}\nMax Grade: {{ $json.maxGrade }}\nStudent Submission: {{ $json.submissionText }}\n\nRUBRIC:\n\nCriterion 1: {{ $json.criterion1Name }}\nLevels: {{ $json.criterion1Levels }}\n\nCriterion 2: {{ $json.criterion2Name }}\nLevels: {{ $json.criterion2Levels }}\n\nEvaluate the student's answer and assign a score for EACH criterion by selecting the appropriate level.\n\nIMPORTANT: Respond with ONLY valid JSON, no markdown formatting, no code fences, no backticks. Use this exact format:\n\n{\n  \"criterion1Score\": NUMBER,\n  \"criterion1Level\": \"LEVEL_NAME\",\n  \"criterion1Feedback\": \"TEXT\",\n  \"criterion2Score\": NUMBER,\n  \"criterion2Level\": \"LEVEL_NAME\",\n  \"criterion2Feedback\": \"TEXT\",\n  \"totalScore\": NUMBER,\n  \"overallFeedback\": \"TEXT\"\n}\n\nDo not include ```json or ``` or any other formatting. Just the raw JSON object."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -96,
+        -640
+      ],
+      "id": "b5bc3da3-4ba7-49fc-8972-e0a20913ff14",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -112,
+        -496
+      ],
+      "id": "695b3f9c-962a-4079-8f99-4781974e8ed6",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "hqB9Pwt4QnucEtMt",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "results[0].output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -656
+      ],
+      "id": "80b39cb2-ddfa-4b74-b0f3-88993d45f1ea",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "url": "https://lms.mohammadnabil.site/webservice/rest/server.php",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wsfunction",
+              "value": "mod_assign_save_grade"
+            },
+            {
+              "name": "moodlewsrestformat",
+              "value": "json"
+            },
+            {
+              "name": "wstoken",
+              "value": "c0a31a9e7a14ca0222e53af59601dd13"
+            },
+            {
+              "name": "assignmentid",
+              "value": "={{ $node[\"get assingnmet parameters\"].json[\"assignmentId\"] }}"
+            },
+            {
+              "name": "userid",
+              "value": "={{ $node[\"get assingnmet parameters\"].json[\"userId\"] }}"
+            },
+            {
+              "name": "=grade",
+              "value": "={{ $node[\"get grade and feedback\"].json[\"grade\"] }}"
+            },
+            {
+              "name": "plugindata[assignfeedbackcomments_editor][text]",
+              "value": "={{ $node[\"get grade and feedback\"].json[\"feedback\"] }}"
+            },
+            {
+              "name": "plugindata[assignfeedbackcomments_editor][format]",
+              "value": "1"
+            },
+            {
+              "name": "attemptnumber",
+              "value": "-1"
+            },
+            {
+              "name": "addattempt",
+              "value": "0"
+            },
+            {
+              "name": "workflowstate",
+              "value": "notmarked"
+            },
+            {
+              "name": "applytoall",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        336,
+        -384
+      ],
+      "id": "98441171-82ad-4cf1-a86d-a7cb9fc6f4e3",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the current submission from the loop\nconst submission = items[0].json;\n\n// Check if this is a text submission or file submission\nconst hasText = submission.submissionText && submission.submissionText.trim() !== '';\nconst hasFiles = submission.submissionFiles && submission.submissionFiles !== '[]';\n\n// For now, only process text submissions (files need different handling)\nif (!hasText) {\n  return [{ \n    json: { \n      skip: true,\n      message: 'Skipping - no text submission or has files only',\n      submissionId: submission.submissionId,\n      userId: submission.userId\n    } \n  }];\n}\n\n// Return clean data for AI Agent INCLUDING rubric criteria\nreturn [{\n  json: {\n    assignmentId: submission.assignmentId,\n    assignmentName: submission.assignmentName,\n    submissionId: submission.submissionId,\n    userId: submission.userId,\n    maxGrade: submission.maxGrade,\n    instructions: submission.instructions,\n    submissionText: submission.submissionText,\n    gradingStatus: submission.gradingStatus,\n    \n    // Add rubric criteria\n    criterion1Name: submission.criterion1Name || 'definition',\n    criterion1Levels: submission.criterion1Levels || '{\"wrong\":5,\"poor definition\":20,\"good definition\":50}',\n    criterion2Name: submission.criterion2Name || 'used for',\n    criterion2Levels: submission.criterion2Levels || '{\"wrong usage\":5,\"Partially right\":20,\"right\":50}'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -384
+      ],
+      "id": "7a057bee-5eed-4eb1-a8aa-36f4c7e6eff7",
+      "name": "get assingnmet parameters"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI Agent output\nconst aiOutput = items[0].json.output;\n\n// Parse the JSON string\nlet parsed;\ntry {\n  let cleanOutput = aiOutput.trim();\n  cleanOutput = cleanOutput.replace(/```json\\n?/g, '');\n  cleanOutput = cleanOutput.replace(/```\\n?/g, '');\n  cleanOutput = cleanOutput.trim();\n  \n  parsed = JSON.parse(cleanOutput);\n} catch (error) {\n  console.error('Failed to parse AI output:', error);\n  return [{\n    json: {\n      error: 'Failed to parse AI response',\n      rawOutput: aiOutput\n    }\n  }];\n}\n\n// Get the original data from the node BEFORE AI Agent\n// Find the node name - it might be \"Prepare Data\" or \"Code in JavaScript\"\nconst originalData = $('Loop Over Items').last().json;\n\n// Format detailed feedback with rubric breakdown\nlet detailedFeedback = \"=== Rubric Grading ===\\n\\n\";\ndetailedFeedback += \"1. \" + (originalData.criterion1Name || \"Criterion 1\") + \": \" + parsed.criterion1Score + \" points (\" + parsed.criterion1Level + \")\\n\";\ndetailedFeedback += \"   \" + parsed.criterion1Feedback + \"\\n\\n\";\ndetailedFeedback += \"2. \" + (originalData.criterion2Name || \"Criterion 2\") + \": \" + parsed.criterion2Score + \" points (\" + parsed.criterion2Level + \")\\n\";\ndetailedFeedback += \"   \" + parsed.criterion2Feedback + \"\\n\\n\";\ndetailedFeedback += \"Total Score: \" + parsed.totalScore + \"/\" + (originalData.maxGrade || 100) + \"\\n\\n\";\ndetailedFeedback += \"Overall: \" + parsed.overallFeedback;\n\nreturn [{\n  json: {\n    grade: parsed.totalScore,\n    feedback: detailedFeedback,\n    criterion1Score: parsed.criterion1Score,\n    criterion1Level: parsed.criterion1Level,\n    criterion2Score: parsed.criterion2Score,\n    criterion2Level: parsed.criterion2Level,\n    assignmentId: originalData.assignmentId,\n    userId: originalData.userId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -640
+      ],
+      "id": "e0e10186-1f90-4e88-b5ee-c608ce7b029f",
+      "name": "get grade and feedback"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "get assingnmet parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "get grade and feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get assingnmet parameters": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get grade and feedback": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9aba2294-c118-41d3-b8d6-83df0ed4e6b9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b253211a774e1082a8da3af3f8503fe5f5b71a128946778f1d9f44b46cdd105"
+  },
+  "id": "NHVlOPPD4vTt2XsU",
+  "tags": []
+}
