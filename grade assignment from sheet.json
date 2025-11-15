@@ -114,8 +114,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        192,
-        -352
+        128,
+        -608
       ],
       "id": "fef6d1df-9116-43ae-a6eb-54db7a42fffa",
       "name": "Code in JavaScript1"
@@ -201,8 +201,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        -480,
-        -96
+        240,
+        -256
       ],
       "id": "f67641da-a1a6-41ca-9632-d6b60d604756",
       "name": "HTTP Request"
@@ -287,6 +287,17 @@
       "main": [
         [
           {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
             "node": "Loop Over Items",
             "type": "main",
             "index": 0
@@ -299,7 +310,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "d493208b-e2f5-4013-bd5f-7b448b202856",
+  "versionId": "72f28fff-aaef-455d-b647-0ba1ebe1b444",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "0b253211a774e1082a8da3af3f8503fe5f5b71a128946778f1d9f44b46cdd105"
