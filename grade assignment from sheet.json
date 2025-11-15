@@ -60,19 +60,6 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get the current submission from the loop\nconst submission = items[0].json;\n\n// Check if this is a text submission or file submission\nconst hasText = submission.submissionText && submission.submissionText.trim() !== '';\nconst hasFiles = submission.submissionFiles && submission.submissionFiles !== '[]';\n\n// For now, only process text submissions (files need different handling)\nif (!hasText) {\n  return [{ \n    json: { \n      skip: true,\n      message: 'Skipping - no text submission or has files only',\n      submissionId: submission.submissionId,\n      userId: submission.userId\n    } \n  }];\n}\n\n// Return clean data for AI Agent\nreturn [{\n  json: {\n    assignmentId: submission.assignmentId,\n    assignmentName: submission.assignmentName,\n    submissionId: submission.submissionId,\n    userId: submission.userId,\n    maxGrade: submission.maxGrade,\n    instructions: submission.instructions,\n    submissionText: submission.submissionText,\n    gradingStatus: submission.gradingStatus\n  }\n}];"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        -352,
-        -384
-      ],
-      "id": "0291f3c0-721b-481d-afbd-1169f5d32a39",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
         "promptType": "define",
         "text": "=instructions:{{ $json.instructions }}\nsubmissionText :{{ $json.submissionText }}\nmaxGrade:{{ $json.maxGrade }}",
         "options": {
@@ -147,19 +134,19 @@
             },
             {
               "name": "assignmentid",
-              "value": "={{ $json.assignmentId }}"
+              "value": "={{ $node[\"get assingnmet parameters\"].json[\"assignmentId\"] }}"
             },
             {
               "name": "userid",
-              "value": "={{ $json.userId }}"
+              "value": "={{ $node[\"get assingnmet parameters\"].json[\"userId\"] }}"
             },
             {
-              "name": "grade",
-              "value": "55"
+              "name": "=grade",
+              "value": "={{ $node[\"get grade and feedback\"].json[\"grade\"] }}"
             },
             {
               "name": "plugindata[assignfeedbackcomments_editor][text]",
-              "value": "feedbackfeedbackfeedback"
+              "value": "={{ $node[\"get grade and feedback\"].json[\"feedback\"] }}"
             },
             {
               "name": "plugindata[assignfeedbackcomments_editor][format]",
@@ -188,11 +175,37 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.3,
       "position": [
-        528,
+        336,
         -384
       ],
       "id": "f67641da-a1a6-41ca-9632-d6b60d604756",
       "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the current submission from the loop\nconst submission = items[0].json;\n\n// Check if this is a text submission or file submission\nconst hasText = submission.submissionText && submission.submissionText.trim() !== '';\nconst hasFiles = submission.submissionFiles && submission.submissionFiles !== '[]';\n\n// For now, only process text submissions (files need different handling)\nif (!hasText) {\n  return [{ \n    json: { \n      skip: true,\n      message: 'Skipping - no text submission or has files only',\n      submissionId: submission.submissionId,\n      userId: submission.userId\n    } \n  }];\n}\n\n// Return clean data for AI Agent\nreturn [{\n  json: {\n    assignmentId: submission.assignmentId,\n    assignmentName: submission.assignmentName,\n    submissionId: submission.submissionId,\n    userId: submission.userId,\n    maxGrade: submission.maxGrade,\n    instructions: submission.instructions,\n    submissionText: submission.submissionText,\n    gradingStatus: submission.gradingStatus\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        -384
+      ],
+      "id": "0291f3c0-721b-481d-afbd-1169f5d32a39",
+      "name": "get assingnmet parameters"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the AI Agent output\nconst aiOutput = items[0].json.output;\n\n// Parse the JSON string\nconst parsed = JSON.parse(aiOutput);\n\n// Return only grade and feedback\nreturn [{\n  json: {\n    grade: parsed.grade,\n    feedback: parsed.feedback\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        256,
+        -640
+      ],
+      "id": "89cc2ac2-90ec-4f15-a230-b620dbd03727",
+      "name": "get grade and feedback"
     }
   ],
   "pinData": {},
@@ -230,23 +243,7 @@
         ],
         [
           {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "HTTP Request",
+            "node": "get assingnmet parameters",
             "type": "main",
             "index": 0
           }
@@ -268,7 +265,7 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "get grade and feedback",
             "type": "main",
             "index": 0
           }
@@ -285,13 +282,40 @@
           }
         ]
       ]
+    },
+    "get assingnmet parameters": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get grade and feedback": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "e6dc633d-ee4c-4377-9916-a945d3ad1e7d",
+  "versionId": "e83b7d14-6f5a-4ac5-9095-3a034dd77a02",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "0b253211a774e1082a8da3af3f8503fe5f5b71a128946778f1d9f44b46cdd105"
