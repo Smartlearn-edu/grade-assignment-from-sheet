@@ -1,0 +1,309 @@
+{
+  "name": "grade assignment from sheet",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -736,
+        -480
+      ],
+      "id": "77ab4cc6-fa6c-40ea-8915-230c20a3513c",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1P15oYreeYZrH9rkr-8OOMIMMGmHPrML0gn0kXg9281o",
+          "mode": "list",
+          "cachedResultName": "python assignments",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1P15oYreeYZrH9rkr-8OOMIMMGmHPrML0gn0kXg9281o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1P15oYreeYZrH9rkr-8OOMIMMGmHPrML0gn0kXg9281o/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -624,
+        -480
+      ],
+      "id": "707bdcd8-fcb1-48ca-80ff-d8c7d478265f",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "Ll71p2dsiT3JLP8R",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -512,
+        -480
+      ],
+      "id": "2e977802-cf13-490b-bae5-a3345c83f02c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the current submission from the loop\nconst submission = items[0].json;\n\n// Check if this is a text submission or file submission\nconst hasText = submission.submissionText && submission.submissionText.trim() !== '';\nconst hasFiles = submission.submissionFiles && submission.submissionFiles !== '[]';\n\n// For now, only process text submissions (files need different handling)\nif (!hasText) {\n  return [{ \n    json: { \n      skip: true,\n      message: 'Skipping - no text submission or has files only',\n      submissionId: submission.submissionId,\n      userId: submission.userId\n    } \n  }];\n}\n\n// Return clean data for AI Agent\nreturn [{\n  json: {\n    assignmentId: submission.assignmentId,\n    assignmentName: submission.assignmentName,\n    submissionId: submission.submissionId,\n    userId: submission.userId,\n    maxGrade: submission.maxGrade,\n    instructions: submission.instructions,\n    submissionText: submission.submissionText,\n    gradingStatus: submission.gradingStatus\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -352
+      ],
+      "id": "0291f3c0-721b-481d-afbd-1169f5d32a39",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=instructions:{{ $json.instructions }}\nsubmissionText :{{ $json.submissionText }}\nmaxGrade:{{ $json.maxGrade }}",
+        "options": {
+          "systemMessage": "You are a teacher grading student assignments.\n\nAssignment Question: {{ $json.instructions }}\nMax Grade: {{ $json.maxGrade }}\nStudent Submission: {{ $json.submissionText }}\n\nEvaluate the student's answer and provide:\n1. A numerical grade (0 to {{ $json.maxGrade }})\n2. Constructive feedback explaining the grade\n\nIMPORTANT: Respond with ONLY valid JSON, no markdown formatting, no code fences, no backticks. Just pure JSON in this exact format:\n{\"grade\": NUMBER, \"feedback\": \"TEXT\"}\n\nDo not include ```json or ``` or any other formatting. Just the raw JSON object."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -96,
+        -352
+      ],
+      "id": "d963f456-4e8e-42a7-a54c-9d40828bc1f4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -432,
+        -288
+      ],
+      "id": "a10fdc23-7e9d-42c9-8a99-2353d5674e41",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "hqB9Pwt4QnucEtMt",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// This collects all the graded submissions\nconst allResults = [];\n\n// Get all items that passed through\nfor (const item of items) {\n  if (item.json && !item.json.skip) {\n    allResults.push(item.json);\n  }\n}\n\nreturn [{\n  json: {\n    totalProcessed: allResults.length,\n    results: allResults\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        -352
+      ],
+      "id": "fef6d1df-9116-43ae-a6eb-54db7a42fffa",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "results[0].output"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        -496
+      ],
+      "id": "a496fe6b-11ab-4c42-bc18-ca64f5fc8087",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "url": "https://lms.mohammadnabil.site/webservice/rest/server.php",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "wsfunction",
+              "value": "mod_assign_save_grade"
+            },
+            {
+              "name": "moodlewsrestformat",
+              "value": "json"
+            },
+            {
+              "name": "wstoken",
+              "value": "c0a31a9e7a14ca0222e53af59601dd13"
+            },
+            {
+              "name": "assignmentid",
+              "value": "6"
+            },
+            {
+              "name": "userid",
+              "value": "89"
+            },
+            {
+              "name": "grade",
+              "value": "77"
+            },
+            {
+              "name": "plugindata[assignfeedbackcomments_editor][text]",
+              "value": "feedbackfeedbackfeedback"
+            },
+            {
+              "name": "plugindata[assignfeedbackcomments_editor][format]",
+              "value": "1"
+            },
+            {
+              "name": "attemptnumber",
+              "value": "-1"
+            },
+            {
+              "name": "addattempt",
+              "value": "0"
+            },
+            {
+              "name": "workflowstate",
+              "value": "notmarked"
+            },
+            {
+              "name": "applytoall",
+              "value": "0"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -480,
+        -96
+      ],
+      "id": "f67641da-a1a6-41ca-9632-d6b60d604756",
+      "name": "HTTP Request"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d493208b-e2f5-4013-bd5f-7b448b202856",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b253211a774e1082a8da3af3f8503fe5f5b71a128946778f1d9f44b46cdd105"
+  },
+  "id": "B6jw4KoefNXofe53",
+  "tags": []
+}
